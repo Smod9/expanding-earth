@@ -8,6 +8,7 @@ import {
 } from "@assistant-ui/react";
 import type { TextMessagePartProps } from "@assistant-ui/react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 function ThinkingDots() {
   return (
@@ -21,8 +22,8 @@ function ThinkingDots() {
 
 function TextPart({ text }: TextMessagePartProps) {
   return (
-    <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-xs [&_h3]:font-semibold [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1.5 [&_code]:text-accent [&_code]:bg-surface-alt [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_strong]:text-foreground [&_a]:text-accent">
-      <Markdown>{text}</Markdown>
+    <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-xs [&_h3]:font-semibold [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1.5 [&_code]:text-accent [&_code]:bg-surface-alt [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_strong]:text-foreground [&_a]:text-accent [&_table]:my-2 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:bg-surface-alt [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5">
+      <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
       <MessagePartPrimitive.InProgress>
         <ThinkingDots />
       </MessagePartPrimitive.InProgress>
