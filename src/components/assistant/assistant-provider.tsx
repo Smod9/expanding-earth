@@ -36,7 +36,11 @@ function isMobile(): boolean {
 function readStoredMode(): ChatMode {
   if (typeof window === "undefined") return DEFAULT_MODE;
   const v = localStorage.getItem(STORAGE_KEY);
-  if (v === "hidden" || v === "bubble" || v === "pane") return v;
+  if (v === "hidden" || v === "bubble" || v === "pane") {
+    // Don't restore "pane" on mobile — there's no side pane, fall back to hidden
+    if (v === "pane" && isMobile()) return "hidden";
+    return v;
+  }
   return isMobile() ? "hidden" : DEFAULT_MODE;
 }
 

@@ -9,6 +9,20 @@ export function OverviewPanel() {
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+      {/* Jump to Explorer */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border bg-surface px-5 py-4">
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">Planetary Dynamics Explorer</h2>
+          <p className="text-xs text-muted mt-0.5">Adjust parameters, scrub through 4.5 Gyr, compare scenarios</p>
+        </div>
+        <button
+          onClick={() => setActiveTab('explorer')}
+          className="shrink-0 w-full sm:w-auto px-4 py-2.5 rounded-lg bg-accent/15 text-accent text-sm font-medium hover:bg-accent/25 transition-colors text-center"
+        >
+          Open Explorer →
+        </button>
+      </div>
+
       {/* Framing */}
       <Panel title="What This Tool Does" subtitle="And what it does not do">
         <div className="space-y-4 text-sm leading-relaxed">

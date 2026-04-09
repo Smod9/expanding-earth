@@ -36,53 +36,71 @@ function IconRobot() {
 }
 
 const actionBtnClass =
-  "rounded p-1 text-muted hover:text-foreground hover:bg-surface-alt transition-colors";
+  "rounded p-1.5 text-muted hover:text-foreground hover:bg-surface-alt transition-colors";
 
 export function ChatBubble() {
   const { mode, setMode, ready } = useAssistantUI();
 
   if (!ready || mode === "pane") return null;
 
+  const isOpen = mode === "bubble";
+
   return (
     <>
-      {mode === "bubble" && (
-        <div className="fixed bottom-20 right-4 z-50 flex h-[min(560px,calc(100dvh-6rem))] w-[calc(100vw-2rem)] max-w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
-          <ChatThread
-            actions={
-              <>
-                <button
-                  type="button"
-                  onClick={() => setMode("pane")}
-                  className={actionBtnClass}
-                  aria-label="Expand to side panel"
-                >
-                  <IconExpand />
-                </button>
+      {isOpen && (
+        <>
+          {/* Mobile: full-screen overlay */}
+          <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-surface">
+            <ChatThread
+              actions={
                 <button
                   type="button"
                   onClick={() => setMode("hidden")}
-                  className={actionBtnClass}
+                  className="rounded p-2 text-muted hover:text-foreground hover:bg-surface-alt transition-colors"
                   aria-label="Close chat"
                 >
                   <IconClose />
                 </button>
-              </>
-            }
-          />
-        </div>
+              }
+            />
+          </div>
+
+          {/* Desktop: floating popover */}
+          <div className="hidden md:flex fixed bottom-20 right-4 z-50 h-[560px] w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
+            <ChatThread
+              actions={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setMode("pane")}
+                    className={actionBtnClass}
+                    aria-label="Expand to side panel"
+                  >
+                    <IconExpand />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("hidden")}
+                    className={actionBtnClass}
+                    aria-label="Close chat"
+                  >
+                    <IconClose />
+                  </button>
+                </>
+              }
+            />
+          </div>
+        </>
       )}
 
+      {/* FAB — hidden when mobile fullscreen is open */}
       <button
         type="button"
-        onClick={() => setMode(mode === "hidden" ? "bubble" : "hidden")}
-        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-background shadow-lg transition-transform hover:scale-105 hover:bg-accent/90"
+        onClick={() => setMode(isOpen ? "hidden" : "bubble")}
+        className={`fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-background shadow-lg transition-transform hover:scale-105 hover:bg-accent/90 ${isOpen ? "hidden md:flex" : ""}`}
         aria-label="Toggle Explorer Assistant"
       >
-        {mode === "bubble" ? (
-          <IconClose />
-        ) : (
-          <IconRobot />
-        )}
+        {isOpen ? <IconClose /> : <IconRobot />}
       </button>
     </>
   );

@@ -23,9 +23,9 @@ const statusConfig: Record<ConstraintResult['status'], { label: string; classNam
 export function ConstraintBadge({ status }: { status: ConstraintResult['status'] }) {
   const c = statusConfig[status];
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${c.className}`}>
+    <span className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-xs font-medium border ${c.className}`}>
       <span>{c.icon}</span>
-      {c.label}
+      <span className="hidden sm:inline">{c.label}</span>
     </span>
   );
 }

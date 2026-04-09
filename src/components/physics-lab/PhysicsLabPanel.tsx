@@ -141,7 +141,7 @@ export function PhysicsLabPanel() {
     <div className="p-4 md:p-6 space-y-4">
       <div className="max-w-3xl sticky top-0 z-10 -mx-4 px-4 md:-mx-6 md:px-6 pt-0 pb-3 mb-1 bg-background/95 backdrop-blur-sm border-b border-border/60">
         <h2 className="text-lg font-bold">Physics Lab</h2>
-        <p className="text-sm text-muted mt-1">
+        <p className="hidden md:block text-sm text-muted mt-1">
           First-principles rotating layered body: hydrostatic figure, breakup spin, crust hoop stress, Euler
           wobble time, and energy ratios. Not a geologic narrative — pure mechanics on a 1D layered model.
         </p>

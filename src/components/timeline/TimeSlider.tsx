@@ -22,16 +22,14 @@ export function TimeSlider({ compact = false }: { compact?: boolean }) {
       <div className="flex items-center gap-3 w-full">
         <button
           onClick={() => setExpanded(true)}
-          className="text-muted hover:text-foreground text-xs shrink-0"
+          className="flex items-center gap-2 shrink-0 py-1 -my-1 text-muted hover:text-foreground transition-colors"
           title="Expand time controls"
         >
-          ▸
-        </button>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs font-semibold text-muted uppercase tracking-wider">Time</span>
-          <span className="text-sm font-bold font-mono">{formatTimeMya(timeMya)}</span>
+          <span className="text-xs">▸</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">Time</span>
+          <span className="text-sm font-bold font-mono text-foreground">{formatTimeMya(timeMya)}</span>
           <span className="text-[10px] text-accent">{geologicLabel}</span>
-        </div>
+        </button>
         {/* Geologic bar — mini (hidden on small screens) */}
         <div className="hidden sm:flex h-1.5 rounded-full overflow-hidden flex-1 min-w-0">
           {GEOLOGIC_ERAS.map((era) => {
@@ -54,7 +52,7 @@ export function TimeSlider({ compact = false }: { compact?: boolean }) {
           step={1}
           value={timeMya}
           onChange={handleChange}
-          className="flex-1 min-w-[120px]"
+          className="flex-1 min-w-[120px] touch-none"
         />
         <div className="hidden sm:flex gap-1 shrink-0">
           {[0, 252, 541, 2500].map((t) => (
@@ -120,7 +118,7 @@ export function TimeSlider({ compact = false }: { compact?: boolean }) {
         step={1}
         value={timeMya}
         onChange={handleChange}
-        className="w-full"
+        className="w-full touch-none"
       />
 
       {/* Labels */}

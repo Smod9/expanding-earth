@@ -83,16 +83,14 @@ function ConstraintCard({
       result.status === 'strained' ? 'border-strained/30' :
       'border-incompatible/30'
     }`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-semibold">{constraint.name}</h3>
-            <EpistemicBadge tag={constraint.epistemicTag} />
-            <span className="text-[10px] text-muted px-1.5 py-0.5 bg-surface-alt rounded">{constraint.category}</span>
-          </div>
-          <p className="text-xs text-muted">{constraint.description}</p>
+      <div className="mb-3">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <h3 className="text-sm font-semibold">{constraint.name}</h3>
+          <EpistemicBadge tag={constraint.epistemicTag} />
+          <span className="text-[10px] text-muted px-1.5 py-0.5 bg-surface-alt rounded">{constraint.category}</span>
+          <ConstraintBadge status={result.status} />
         </div>
-        <ConstraintBadge status={result.status} />
+        <p className="text-xs text-muted">{constraint.description}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -114,7 +112,7 @@ function ConstraintCard({
         <div className="text-xs font-medium mb-1">Model Assessment</div>
         <p className="text-xs text-muted">{result.detail}</p>
         {result.quantitative && (
-          <div className="mt-1 text-[10px] font-mono text-muted">
+          <div className="mt-1 text-[10px] font-mono text-muted break-all">
             Model: {result.quantitative.modelValue.toFixed(4)} {result.quantitative.unit} |
             Observed: {result.quantitative.observedValue} ± {result.quantitative.tolerance} {result.quantitative.unit}
           </div>
