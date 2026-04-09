@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { DefaultChatTransport } from "ai";
@@ -8,13 +16,31 @@ import { useStore } from "@/store/useStore";
 import { EMPIRICAL_CONSTRAINTS } from "@/engine/constraints";
 import { computePlanetaryState } from "@/engine/physics";
 
+export type ChatMode = "hidden" | "bubble" | "pane";
+
 type AssistantContextValue = {
   ready: boolean;
+  mode: ChatMode;
+  setMode: (mode: ChatMode) => void;
 };
 
-const AssistantCtx = createContext<AssistantContextValue>({ ready: false });
+const STORAGE_KEY = "earth-assistant-mode";
+const DEFAULT_MODE: ChatMode = "bubble";
 
-export function useAssistantContext() {
+function readStoredMode(): ChatMode {
+  if (typeof window === "undefined") return DEFAULT_MODE;
+  const v = localStorage.getItem(STORAGE_KEY);
+  if (v === "hidden" || v === "bubble" || v === "pane") return v;
+  return DEFAULT_MODE;
+}
+
+const AssistantCtx = createContext<AssistantContextValue>({
+  ready: false,
+  mode: "hidden",
+  setMode: () => {},
+});
+
+export function useAssistantUI() {
   return useContext(AssistantCtx);
 }
 
@@ -41,7 +67,10 @@ function buildPageContext() {
     expansionRate: (currentState.expansionRate * 1e3).toFixed(4),
     tectonicRegime: currentState.tectonicRegime,
     moiFactor: currentState.moiFactor.toFixed(4),
-    oblateness: currentState.oblateness > 0 ? `1/${(1 / currentState.oblateness).toFixed(0)}` : "0",
+    oblateness:
+      currentState.oblateness > 0
+        ? `1/${(1 / currentState.oblateness).toFixed(0)}`
+        : "0",
     poleDriftRate: currentState.poleDriftRate.toFixed(3),
     constraintSummary: constraintResults.join("\n"),
   };
@@ -57,11 +86,35 @@ function AssistantRuntime({ children }: { children: ReactNode }) {
     }),
   });
 
-  return <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>;
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>
+      {children}
+    </AssistantRuntimeProvider>
+  );
 }
 
 export function AssistantProvider({ children }: { children: ReactNode }) {
-  const value = useMemo(() => ({ ready: true }), []);
+  const [mode, setModeRaw] = useState<ChatMode>(DEFAULT_MODE);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setModeRaw(readStoredMode());
+    setHydrated(true);
+  }, []);
+
+  const setMode = useCallback((m: ChatMode) => {
+    setModeRaw(m);
+    localStorage.setItem(STORAGE_KEY, m);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      ready: true,
+      mode: hydrated ? mode : ("hidden" as ChatMode),
+      setMode,
+    }),
+    [hydrated, mode, setMode],
+  );
 
   return (
     <AssistantCtx.Provider value={value}>

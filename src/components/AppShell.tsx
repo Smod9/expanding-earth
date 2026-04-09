@@ -7,6 +7,7 @@ import { ConstraintsPanel } from './constraints/ConstraintsPanel';
 import { ComparisonPanel } from './comparison/ComparisonPanel';
 import { ExportPanel } from './export/ExportPanel';
 import { TimeSlider } from './timeline/TimeSlider';
+import { ChatPane } from './assistant/chat-pane';
 
 const tabs: { id: ActiveTab; label: string; desc: string }[] = [
   { id: 'overview', label: 'Overview', desc: 'Hypothesis framing' },
@@ -24,7 +25,7 @@ export function AppShell() {
   const showTimebar = TABS_WITH_TIME.has(activeTab);
 
   return (
-    <div className={`${darkMode ? '' : 'light'} min-h-screen bg-background text-foreground`}>
+    <div className={`${darkMode ? '' : 'light'} flex h-screen flex-col bg-background text-foreground`}>
       {/* Header */}
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-[1800px] mx-auto px-4 py-3 flex items-center justify-between">
@@ -72,14 +73,19 @@ export function AppShell() {
         )}
       </header>
 
-      {/* Main content */}
-      <main className="max-w-[1800px] mx-auto">
-        {activeTab === 'overview' && <OverviewPanel />}
-        {activeTab === 'explorer' && <ExplorerPanel />}
-        {activeTab === 'constraints' && <ConstraintsPanel />}
-        {activeTab === 'comparison' && <ComparisonPanel />}
-        {activeTab === 'export' && <ExportPanel />}
-      </main>
+      {/* Body: main content + optional chat pane */}
+      <div className="flex min-h-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="max-w-[1800px] mx-auto">
+            {activeTab === 'overview' && <OverviewPanel />}
+            {activeTab === 'explorer' && <ExplorerPanel />}
+            {activeTab === 'constraints' && <ConstraintsPanel />}
+            {activeTab === 'comparison' && <ComparisonPanel />}
+            {activeTab === 'export' && <ExportPanel />}
+          </div>
+        </main>
+        <ChatPane />
+      </div>
     </div>
   );
 }
