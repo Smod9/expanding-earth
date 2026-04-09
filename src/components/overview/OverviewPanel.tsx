@@ -9,21 +9,6 @@ export function OverviewPanel() {
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
-      {/* Hero */}
-      <div className="text-center py-8">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
-          Planetary Dynamics Explorer
-        </h2>
-        <p className="text-muted text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-          An interactive tool for exploring whether plate tectonics — one of the most
-          successful theories in Earth science — might be one layer of a larger planetary
-          dynamics system.
-        </p>
-        <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface border border-border">
-          <span className="text-xs text-muted">This is a model-exploration tool, not an endorsement of any claim.</span>
-        </div>
-      </div>
-
       {/* Framing */}
       <Panel title="What This Tool Does" subtitle="And what it does not do">
         <div className="space-y-4 text-sm leading-relaxed">

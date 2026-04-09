@@ -29,7 +29,7 @@ export function ChatPane() {
   if (!ready || mode !== "pane") return null;
 
   return (
-    <aside className="flex h-full w-[400px] shrink-0 flex-col border-l border-border bg-surface">
+    <aside className="hidden md:flex h-full w-[400px] shrink-0 flex-col border-l border-border bg-surface">
       <ChatThread
         actions={
           <>

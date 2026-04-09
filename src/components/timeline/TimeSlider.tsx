@@ -32,8 +32,8 @@ export function TimeSlider({ compact = false }: { compact?: boolean }) {
           <span className="text-sm font-bold font-mono">{formatTimeMya(timeMya)}</span>
           <span className="text-[10px] text-accent">{geologicLabel}</span>
         </div>
-        {/* Geologic bar — mini */}
-        <div className="flex h-1.5 rounded-full overflow-hidden flex-1 min-w-0">
+        {/* Geologic bar — mini (hidden on small screens) */}
+        <div className="hidden sm:flex h-1.5 rounded-full overflow-hidden flex-1 min-w-0">
           {GEOLOGIC_ERAS.map((era) => {
             const width = ((era.startMya - era.endMya) / 4500) * 100;
             const isActive = timeMya >= era.endMya && timeMya <= era.startMya;
@@ -56,7 +56,7 @@ export function TimeSlider({ compact = false }: { compact?: boolean }) {
           onChange={handleChange}
           className="flex-1 min-w-[120px]"
         />
-        <div className="flex gap-1 shrink-0">
+        <div className="hidden sm:flex gap-1 shrink-0">
           {[0, 252, 541, 2500].map((t) => (
             <button
               key={t}

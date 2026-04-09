@@ -46,7 +46,7 @@ export function ChatBubble() {
   return (
     <>
       {mode === "bubble" && (
-        <div className="fixed bottom-20 right-4 z-50 flex h-[560px] w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
+        <div className="fixed bottom-20 right-4 z-50 flex h-[min(560px,calc(100dvh-6rem))] w-[calc(100vw-2rem)] max-w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
           <ChatThread
             actions={
               <>
