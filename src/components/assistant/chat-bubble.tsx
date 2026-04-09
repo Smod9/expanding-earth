@@ -26,10 +26,19 @@ export function ChatBubble() {
           </svg>
         ) : (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2C6.48 2 2 5.82 2 10.5c0 2.55 1.43 4.83 3.67 6.35L4.5 21l4.3-2.15c1.02.27 2.1.42 3.2.42 5.52 0 10-3.82 10-8.5S17.52 2 12 2z" />
-            <circle cx="8.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="10.5" r="1" fill="currentColor" stroke="none" />
-            <circle cx="15.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+            {/* antenna */}
+            <line x1="12" y1="2" x2="12" y2="5" />
+            <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none" />
+            {/* head */}
+            <rect x="4" y="5" width="16" height="13" rx="3" />
+            {/* eyes */}
+            <circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none" />
+            {/* ears */}
+            <line x1="2" y1="10" x2="4" y2="10" />
+            <line x1="20" y1="10" x2="22" y2="10" />
+            {/* mouth */}
+            <path d="M9.5 15.5c1 1 4 1 5 0" />
           </svg>
         )}
       </button>
