@@ -16,8 +16,9 @@ import type { AssistantRuntime } from "@assistant-ui/core";
 import { useAISDKRuntime } from "@assistant-ui/react-ai-sdk";
 import type { UseChatRuntimeOptions } from "@assistant-ui/react-ai-sdk";
 import { useAuiState } from "@assistant-ui/store";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { EarthAssistantChatTransport } from "@/lib/earth-assistant-chat-transport";
+import { loadChatHistory, saveChatHistory } from "@/lib/chat-history";
 
 function useDynamicChatTransport(transport: ChatTransport<UIMessage>) {
   const transportRef = useRef(transport);
@@ -48,11 +49,26 @@ function useChatThreadRuntime(
     transportOptions ?? new EarthAssistantChatTransport({ api: "/api/chat" }),
   );
   const id = useAuiState((s) => s.threadListItem.id);
+  const initialMessages = useMemo(() => loadChatHistory() as UIMessage[], []);
   const chat = useChat({
     ...chatOptions,
     id,
     transport,
+    messages: initialMessages.length > 0 ? initialMessages : undefined,
   });
+
+  const prevLenRef = useRef(initialMessages.length);
+  const persistMessages = useCallback(() => {
+    if (chat.messages.length !== prevLenRef.current) {
+      prevLenRef.current = chat.messages.length;
+      saveChatHistory(chat.messages);
+    }
+  }, [chat.messages]);
+
+  useEffect(() => {
+    persistMessages();
+  }, [persistMessages]);
+
   const runtime = useAISDKRuntime(chat, {
     adapters,
     ...(toCreateMessage && { toCreateMessage }),
