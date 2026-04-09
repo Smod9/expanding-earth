@@ -445,3 +445,69 @@ export const DEFAULT_PHYSICS_LAB: PhysicsLabParams = {
   massAnomalyFraction: 0.001,
   anomalyColatitudeDeg: 45,
 };
+
+/**
+ * Merge a partial patch into PhysicsLabParams (e.g. assistant tool calls). Unknown keys ignored.
+ */
+export function applyPhysicsLabParamsPatch(
+  current: PhysicsLabParams,
+  raw: Record<string, unknown>,
+): PhysicsLabParams {
+  const next = { ...current };
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === undefined) continue;
+    switch (key) {
+      case 'totalMassEarth':
+        if (typeof value === 'number' && value > 0 && value <= 100) {
+          next.totalMassEarth = value;
+        }
+        break;
+      case 'meanRadiusM':
+        if (typeof value === 'number' && value > 0) next.meanRadiusM = value;
+        break;
+      case 'coreRadiusFraction':
+        if (typeof value === 'number' && value > 0 && value < 1) {
+          next.coreRadiusFraction = value;
+        }
+        break;
+      case 'coreDensity':
+      case 'mantleDensity':
+        if (typeof value === 'number' && value > 0) next[key] = value;
+        break;
+      case 'dayLengthHours':
+        if (typeof value === 'number' && value > 0 && value <= 500) {
+          next.dayLengthHours = value;
+        }
+        break;
+      case 'conserveAngularMomentum':
+        if (typeof value === 'boolean') next.conserveAngularMomentum = value;
+        break;
+      case 'crustThicknessM':
+        if (typeof value === 'number' && value >= 0 && value < next.meanRadiusM * 0.5) {
+          next.crustThicknessM = value;
+        }
+        break;
+      case 'crustYieldMpa':
+        if (typeof value === 'number' && value > 0) next.crustYieldMpa = value;
+        break;
+      case 'massAnomalyFraction':
+        if (typeof value === 'number' && value >= 0 && value <= 0.2) {
+          next.massAnomalyFraction = value;
+        }
+        break;
+      case 'anomalyColatitudeDeg':
+        if (typeof value === 'number' && value >= 0 && value <= 90) {
+          next.anomalyColatitudeDeg = value;
+        }
+        break;
+      case 'crustYoungModulusPa':
+        if (typeof value === 'number' && value > 0) next.crustYoungModulusPa = value;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return next;
+}

@@ -81,7 +81,7 @@ export function ChatThread({ actions }: { actions?: React.ReactNode }) {
             </div>
             <p className="text-sm font-medium">Explorer Assistant</p>
             <p className="max-w-[260px] text-xs text-muted leading-relaxed">
-              Ask about the model, the physics, the constraints, or what any scenario means. I know what&apos;s on your screen.
+              Ask about the model, the physics, and the constraints — or tell me to change the scenario, time, tab, or Physics Lab settings. I can drive the UI from here.
             </p>
             <div className="flex flex-wrap gap-1.5 justify-center max-w-[280px] mt-2">
               {[

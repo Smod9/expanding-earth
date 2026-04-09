@@ -1,0 +1,80 @@
+"use client";
+
+/**
+ * Fork of @assistant-ui/react-ai-sdk useChatRuntime with two fixes:
+ * 1. Call setRuntime on any transport that exposes it (not only AssistantChatTransport),
+ *    so EarthAssistantChatTransport receives the assistant runtime.
+ * 2. Default transport uses EarthAssistantChatTransport (safe optional chaining).
+ */
+import { useChat } from "@ai-sdk/react";
+import type { ChatTransport, UIMessage } from "ai";
+import {
+  useCloudThreadListAdapter,
+  useRemoteThreadListRuntime,
+} from "@assistant-ui/core/react";
+import type { AssistantRuntime } from "@assistant-ui/core";
+import { useAISDKRuntime } from "@assistant-ui/react-ai-sdk";
+import type { UseChatRuntimeOptions } from "@assistant-ui/react-ai-sdk";
+import { useAuiState } from "@assistant-ui/store";
+import { useEffect, useMemo, useRef } from "react";
+import { EarthAssistantChatTransport } from "@/lib/earth-assistant-chat-transport";
+
+function useDynamicChatTransport(transport: ChatTransport<UIMessage>) {
+  const transportRef = useRef(transport);
+  useEffect(() => {
+    transportRef.current = transport;
+  });
+  const dynamicTransport = useMemo(
+    () =>
+      new Proxy(transportRef.current, {
+        get(_, prop) {
+          const res = transportRef.current[prop as keyof ChatTransport<UIMessage>];
+          return typeof res === "function"
+            ? (res as (...a: unknown[]) => unknown).bind(transportRef.current)
+            : res;
+        },
+      }),
+    [],
+  );
+  return dynamicTransport as ChatTransport<UIMessage>;
+}
+
+function useChatThreadRuntime(
+  options: UseChatRuntimeOptions | undefined,
+): AssistantRuntime {
+  const { adapters, transport: transportOptions, toCreateMessage, ...chatOptions } =
+    options ?? {};
+  const transport = useDynamicChatTransport(
+    transportOptions ?? new EarthAssistantChatTransport({ api: "/api/chat" }),
+  );
+  const id = useAuiState((s) => s.threadListItem.id);
+  const chat = useChat({
+    ...chatOptions,
+    id,
+    transport,
+  });
+  const runtime = useAISDKRuntime(chat, {
+    adapters,
+    ...(toCreateMessage && { toCreateMessage }),
+  });
+
+  const t = transport as { setRuntime?: (r: AssistantRuntime) => void };
+  if (typeof t.setRuntime === "function") {
+    t.setRuntime(runtime);
+  }
+
+  return runtime;
+}
+
+export function useEarthChatRuntime(
+  { cloud, ...options }: UseChatRuntimeOptions = {},
+): AssistantRuntime {
+  const cloudAdapter = useCloudThreadListAdapter({ cloud });
+  return useRemoteThreadListRuntime({
+    runtimeHook: function RuntimeHook() {
+      return useChatThreadRuntime(options);
+    },
+    adapter: cloudAdapter,
+    allowNesting: true,
+  });
+}

@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import type { ScenarioParams, PlanetaryState, SavedScenario } from '@/engine/types';
 import { SEED_SCENARIOS, getDefaultScenario } from '@/engine/scenarios';
 import { computePlanetaryState, computeTimeSeries } from '@/engine/physics';
+import {
+  DEFAULT_PHYSICS_LAB,
+  type PhysicsLabParams,
+} from '@/engine/pure-physics';
 
 export type ActiveTab = 'overview' | 'explorer' | 'constraints' | 'comparison' | 'export' | 'physics_lab';
 
@@ -24,6 +28,14 @@ interface AppState {
   activeParams: ScenarioParams;
   setActiveParams: (p: ScenarioParams) => void;
   updateParam: <K extends keyof ScenarioParams>(key: K, value: ScenarioParams[K]) => void;
+
+  /** Physics Lab tab — independent parameter-space model */
+  physicsLabParams: PhysicsLabParams;
+  setPhysicsLabParams: (
+    p: PhysicsLabParams | ((prev: PhysicsLabParams) => PhysicsLabParams),
+  ) => void;
+  updatePhysicsLabParams: (patch: Partial<PhysicsLabParams>) => void;
+  resetPhysicsLab: () => void;
 
   // Computed
   currentState: PlanetaryState;
@@ -76,6 +88,18 @@ export const useStore = create<AppState>((set, get) => ({
     const state = computePlanetaryState(get().timeMya, newParams);
     set({ activeParams: newParams, timeSeries: ts, currentState: state });
   },
+
+  physicsLabParams: DEFAULT_PHYSICS_LAB,
+  setPhysicsLabParams: (p) =>
+    set({
+      physicsLabParams:
+        typeof p === 'function' ? p(get().physicsLabParams) : p,
+    }),
+  updatePhysicsLabParams: (patch) =>
+    set((s) => ({
+      physicsLabParams: { ...s.physicsLabParams, ...patch },
+    })),
+  resetPhysicsLab: () => set({ physicsLabParams: DEFAULT_PHYSICS_LAB }),
 
   currentState: defaultState,
   timeSeries: defaultTimeSeries,

@@ -1,14 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
-  DEFAULT_PHYSICS_LAB,
   computePhysicsLabSnapshot,
   sweepRadius,
   sweepDayLength,
   type PhysicsLabParams,
 } from '@/engine/pure-physics';
 import { EARTH_RADIUS } from '@/engine/constants';
+import { useStore } from '@/store/useStore';
 import { Panel } from '@/components/ui/Panel';
 import { LabCrossSection } from './LabCrossSection';
 import {
@@ -104,7 +104,9 @@ function LabChart({
 }
 
 export function PhysicsLabPanel() {
-  const [params, setParams] = useState<PhysicsLabParams>(DEFAULT_PHYSICS_LAB);
+  const params = useStore((s) => s.physicsLabParams);
+  const updatePhysicsLabParams = useStore((s) => s.updatePhysicsLabParams);
+  const resetPhysicsLab = useStore((s) => s.resetPhysicsLab);
 
   const snapshot = useMemo(() => computePhysicsLabSnapshot(params), [params]);
 
@@ -128,16 +130,16 @@ export function PhysicsLabPanel() {
   const currentH = params.dayLengthHours;
 
   const set = <K extends keyof PhysicsLabParams>(key: K, value: PhysicsLabParams[K]) => {
-    setParams((p) => ({ ...p, [key]: value }));
+    updatePhysicsLabParams({ [key]: value } as Partial<PhysicsLabParams>);
   };
 
-  const resetEarth = () => setParams(DEFAULT_PHYSICS_LAB);
+  const resetEarth = () => resetPhysicsLab();
 
   const fInv = snapshot.flattening > 0 ? (1 / snapshot.flattening).toFixed(0) : '∞';
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div className="max-w-3xl">
+      <div className="max-w-3xl sticky top-0 z-10 -mx-4 px-4 md:-mx-6 md:px-6 pt-0 pb-3 mb-1 bg-background/95 backdrop-blur-sm border-b border-border/60">
         <h2 className="text-lg font-bold">Physics Lab</h2>
         <p className="text-sm text-muted mt-1">
           First-principles rotating layered body: hydrostatic figure, breakup spin, crust hoop stress, Euler

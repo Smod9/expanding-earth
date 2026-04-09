@@ -9,12 +9,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { DefaultChatTransport } from "ai";
+import { useEarthChatRuntime } from "./use-earth-chat-runtime";
+import { EarthAssistantChatTransport } from "@/lib/earth-assistant-chat-transport";
 import { useStore } from "@/store/useStore";
 import { EMPIRICAL_CONSTRAINTS } from "@/engine/constraints";
 import { computePlanetaryState } from "@/engine/physics";
+import { PhysicsEngineTools } from "./physics-engine-tools";
 
 export type ChatMode = "hidden" | "bubble" | "pane";
 
@@ -51,7 +52,8 @@ export function useAssistantUI() {
 
 function buildPageContext() {
   const state = useStore.getState();
-  const { activeTab, activeParams, timeMya, currentState } = state;
+  const { activeTab, activeParams, timeMya, currentState, physicsLabParams } =
+    state;
 
   const constraintResults = EMPIRICAL_CONSTRAINTS.map((c) => {
     const s = computePlanetaryState(0, activeParams);
@@ -78,12 +80,16 @@ function buildPageContext() {
         : "0",
     poleDriftRate: currentState.poleDriftRate.toFixed(3),
     constraintSummary: constraintResults.join("\n"),
+    physicsLabMassEarth: physicsLabParams.totalMassEarth.toFixed(2),
+    physicsLabRadiusKm: (physicsLabParams.meanRadiusM / 1000).toFixed(0),
+    physicsLabDayLengthH: physicsLabParams.dayLengthHours.toFixed(1),
+    physicsLabCrustKm: (physicsLabParams.crustThicknessM / 1000).toFixed(0),
   };
 }
 
 function AssistantRuntime({ children }: { children: ReactNode }) {
-  const runtime = useChatRuntime({
-    transport: new DefaultChatTransport({
+  const runtime = useEarthChatRuntime({
+    transport: new EarthAssistantChatTransport({
       api: "/api/chat",
       body: () => ({
         pageContext: buildPageContext(),
@@ -93,6 +99,7 @@ function AssistantRuntime({ children }: { children: ReactNode }) {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
+      <PhysicsEngineTools />
       {children}
     </AssistantRuntimeProvider>
   );

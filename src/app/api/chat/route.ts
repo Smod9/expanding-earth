@@ -1,39 +1,82 @@
-import { streamText, convertToModelMessages } from "ai";
+import {
+  streamText,
+  convertToModelMessages,
+  tool,
+  jsonSchema,
+} from "ai";
 import { gateway } from "@ai-sdk/gateway";
+import type { JSONSchema7 } from "json-schema";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
+type ClientToolPayload = Record<
+  string,
+  { description?: string; parameters: JSONSchema7 }
+>;
+
+function toolsFromClientPayload(
+  clientTools: ClientToolPayload | undefined,
+): Record<string, ReturnType<typeof tool>> | undefined {
+  if (!clientTools || Object.keys(clientTools).length === 0) return undefined;
+  const out: Record<string, ReturnType<typeof tool>> = {};
+  for (const [name, def] of Object.entries(clientTools)) {
+    if (!def?.parameters) continue;
+    out[name] = tool({
+      description: def.description,
+      inputSchema: jsonSchema(def.parameters),
+    });
+  }
+  return out;
+}
+
 export async function POST(request: Request) {
-  const { messages, pageContext } = await request.json();
+  const body = (await request.json()) as {
+    messages?: unknown;
+    pageContext?: Record<string, unknown>;
+    tools?: ClientToolPayload;
+    system?: string;
+  };
+
+  const { messages, pageContext, tools: clientTools, system: clientSystem } =
+    body;
 
   const modelId = "anthropic/claude-opus-4.6";
 
   let contextBlock = "";
   if (pageContext) {
+    const pc = pageContext as Record<string, string | number | undefined>;
     contextBlock = `
 
 ## Current App State
-- Active tab: ${pageContext.activeTab ?? "unknown"}
-- Active scenario: ${pageContext.scenarioName ?? "unknown"}
-- Scenario description: ${pageContext.scenarioDescription ?? ""}
-- Time selected: ${pageContext.timeMya ?? 0} Ma (millions of years ago)
-- Radial mode: ${pageContext.radialMode ?? "none"}
-- Current radius: ${pageContext.radius ?? "N/A"} km
-- Surface gravity: ${pageContext.surfaceGravity ?? "N/A"} m/s²
-- Mean density: ${pageContext.meanDensity ?? "N/A"} kg/m³
-- Day length: ${pageContext.dayLength ?? "N/A"} hours
-- Expansion rate: ${pageContext.expansionRate ?? "N/A"} mm/yr
-- Tectonic regime: ${pageContext.tectonicRegime ?? "N/A"}
-- MoI factor: ${pageContext.moiFactor ?? "N/A"}
-- Oblateness: ${pageContext.oblateness ?? "N/A"}
-- Pole drift rate: ${pageContext.poleDriftRate ?? "N/A"} °/Myr
+- Active tab: ${pc.activeTab ?? "unknown"}
+- Active scenario: ${pc.scenarioName ?? "unknown"}
+- Scenario description: ${pc.scenarioDescription ?? ""}
+- Time selected: ${pc.timeMya ?? 0} Ma (millions of years ago)
+- Radial mode: ${pc.radialMode ?? "none"}
+- Current radius: ${pc.radius ?? "N/A"} km
+- Surface gravity: ${pc.surfaceGravity ?? "N/A"} m/s²
+- Mean density: ${pc.meanDensity ?? "N/A"} kg/m³
+- Day length: ${pc.dayLength ?? "N/A"} hours
+- Expansion rate: ${pc.expansionRate ?? "N/A"} mm/yr
+- Tectonic regime: ${pc.tectonicRegime ?? "N/A"}
+- MoI factor: ${pc.moiFactor ?? "N/A"}
+- Oblateness: ${pc.oblateness ?? "N/A"}
+- Pole drift rate: ${pc.poleDriftRate ?? "N/A"} °/Myr
+- Physics Lab (if using that tab): mass = ${pc.physicsLabMassEarth ?? "N/A"} M⊕, radius = ${pc.physicsLabRadiusKm ?? "N/A"} km, day = ${pc.physicsLabDayLengthH ?? "N/A"} h, crust = ${pc.physicsLabCrustKm ?? "N/A"} km
 
 ### Constraint Assessment
-${pageContext.constraintSummary ?? "Not evaluated"}`;
+${pc.constraintSummary ?? "Not evaluated"}`;
   }
 
-  const systemPrompt = `You are the Planetary Dynamics Explorer assistant — an intellectually honest scientific discussion partner embedded in an interactive model-exploration tool.
+  const toolsBlock = clientTools
+    ? `
+
+## App control tools
+Frontend tools are available: you can change the active tab, geologic time, load a seed scenario, patch Explorer scenario parameters, and patch or reset Physics Lab parameters. When the user asks to try a configuration, **call the appropriate tools** instead of only describing hypothetical slider moves. After tools run, briefly confirm what changed.`
+    : "";
+
+  let systemPrompt = `You are the Planetary Dynamics Explorer assistant — an intellectually honest scientific discussion partner embedded in an interactive model-exploration tool.
 
 ## Your Role
 You help users understand and explore the hypothesis that plate tectonics, while extremely successful, may be one layer of a larger planetary dynamics system. You are knowledgeable about:
@@ -50,6 +93,7 @@ The Planetary Dynamics Explorer lets users:
 3. See how planetary state evolves over 4.5 billion years
 4. Compare model predictions against empirical constraints
 5. Compare multiple scenario interpretations side by side
+6. Use the **Physics Lab** tab for first-principles rotating-body mechanics (no geologic timeline)
 
 The app has 5 seed scenarios:
 - **Standard — No Expansion**: Mainstream null hypothesis. Constant radius, tidal braking.
@@ -66,17 +110,27 @@ The app has 5 seed scenarios:
 - Be genuinely curious and exploratory — not dismissive, not promotional
 - If the user's current scenario conflicts with evidence, explain why honestly
 - Use the current app state (provided below) to give contextual answers
+${toolsBlock}
 
 ## Tone
 Smart, skeptical, exploratory, concise. Like talking to a knowledgeable colleague who takes the question seriously but won't handwave past problems. Use markdown for readability.
 ${contextBlock}`;
 
-  const modelMessages = await convertToModelMessages(messages);
+  if (typeof clientSystem === "string" && clientSystem.trim()) {
+    systemPrompt += `\n\n## Additional instructions\n${clientSystem.trim()}`;
+  }
+
+  const modelMessages = await convertToModelMessages(
+    messages as Parameters<typeof convertToModelMessages>[0],
+  );
+
+  const toolSet = toolsFromClientPayload(clientTools);
 
   const result = streamText({
     model: gateway(modelId),
     system: systemPrompt,
     messages: modelMessages,
+    ...(toolSet && Object.keys(toolSet).length > 0 ? { tools: toolSet } : {}),
   });
 
   return result.toUIMessageStreamResponse();
