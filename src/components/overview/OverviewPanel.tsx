@@ -39,7 +39,7 @@ export function OverviewPanel() {
             and time-varying tectonic modes.
           </p>
           <p>
-            It's worth noting that a surprising number of fundamental questions about plate tectonics
+            <strong>It's worth noting</strong> that a surprising number of fundamental questions about plate tectonics
             remain open or actively debated: what initiates subduction, why Earth has plates at all
             while similar-sized Venus apparently does not, how the first continental crust formed,
             what drives the observed episodicity in supercontinent cycles, and whether plate tectonics
@@ -48,7 +48,7 @@ export function OverviewPanel() {
             standard framework, while powerful, may be embedded in a larger dynamical story.
           </p>
           <p>
-            Think of the analogy to Newtonian physics: extremely useful, often correct within its
+            <strong>Think of the analogy to Newtonian physics:</strong> extremely useful, often correct within its
             domain, but potentially not the complete underlying story. This tool lets you test that
             analogy for planetary tectonics.
           </p>
