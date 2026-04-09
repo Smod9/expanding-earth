@@ -14,7 +14,22 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Planetary Dynamics Explorer",
-  description: "An interactive tool for exploring alternative planetary-tectonics hypotheses within a rigorous scientific framework. Model exploration, not endorsement.",
+  description:
+    "Explore how radius, density, gravity, and rotation evolve across 4.5 billion years of planetary history. Interactive physics model — exploration, not endorsement.",
+  metadataBase: new URL("https://isitbiggernow.com"),
+  openGraph: {
+    title: "Planetary Dynamics Explorer",
+    description:
+      "Explore how radius, density, gravity, and rotation evolve across 4.5 billion years of planetary history.",
+    siteName: "Planetary Dynamics Explorer",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Planetary Dynamics Explorer",
+    description:
+      "Explore how radius, density, gravity, and rotation evolve across 4.5 billion years of planetary history.",
+  },
 };
 
 export default function RootLayout({
