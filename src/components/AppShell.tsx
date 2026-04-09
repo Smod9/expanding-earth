@@ -8,6 +8,7 @@ import { ComparisonPanel } from './comparison/ComparisonPanel';
 import { ExportPanel } from './export/ExportPanel';
 import { TimeSlider } from './timeline/TimeSlider';
 import { ChatPane } from './assistant/chat-pane';
+import { PhysicsLabPanel } from './physics-lab/PhysicsLabPanel';
 
 const tabs: { id: ActiveTab; label: string; desc: string }[] = [
   { id: 'overview', label: 'Overview', desc: 'Hypothesis framing' },
@@ -15,6 +16,7 @@ const tabs: { id: ActiveTab; label: string; desc: string }[] = [
   { id: 'constraints', label: 'Constraints', desc: 'Evidence overlay' },
   { id: 'comparison', label: 'Compare', desc: 'Model comparison' },
   { id: 'export', label: 'Export', desc: 'Save & export' },
+  { id: 'physics_lab', label: 'Physics Lab', desc: 'Pure rotating-body mechanics' },
 ];
 
 const TABS_WITH_TIME = new Set<ActiveTab>(['explorer', 'constraints', 'comparison']);
@@ -82,6 +84,7 @@ export function AppShell() {
             {activeTab === 'constraints' && <ConstraintsPanel />}
             {activeTab === 'comparison' && <ComparisonPanel />}
             {activeTab === 'export' && <ExportPanel />}
+            {activeTab === 'physics_lab' && <PhysicsLabPanel />}
           </div>
         </main>
         <ChatPane />

@@ -3,7 +3,7 @@ import type { ScenarioParams, PlanetaryState, SavedScenario } from '@/engine/typ
 import { SEED_SCENARIOS, getDefaultScenario } from '@/engine/scenarios';
 import { computePlanetaryState, computeTimeSeries } from '@/engine/physics';
 
-export type ActiveTab = 'overview' | 'explorer' | 'constraints' | 'comparison' | 'export';
+export type ActiveTab = 'overview' | 'explorer' | 'constraints' | 'comparison' | 'export' | 'physics_lab';
 
 interface ComparisonSlot {
   label: string;

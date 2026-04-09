@@ -3,3 +3,4 @@ export * from './constants';
 export * from './physics';
 export * from './scenarios';
 export * from './constraints';
+export * from './pure-physics';
