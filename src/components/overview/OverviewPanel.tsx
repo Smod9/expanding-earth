@@ -39,6 +39,15 @@ export function OverviewPanel() {
             and time-varying tectonic modes.
           </p>
           <p>
+            It's worth noting that a surprising number of fundamental questions about plate tectonics
+            remain open or actively debated: what initiates subduction, why Earth has plates at all
+            while similar-sized Venus apparently does not, how the first continental crust formed,
+            what drives the observed episodicity in supercontinent cycles, and whether plate tectonics
+            even operated in the Archean in a form we'd recognize today. These aren't fringe puzzles —
+            they're mainstream research frontiers, and they leave room for the possibility that the
+            standard framework, while powerful, may be embedded in a larger dynamical story.
+          </p>
+          <p>
             Think of the analogy to Newtonian physics: extremely useful, often correct within its
             domain, but potentially not the complete underlying story. This tool lets you test that
             analogy for planetary tectonics.
