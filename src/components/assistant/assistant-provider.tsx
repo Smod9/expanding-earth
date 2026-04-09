@@ -27,11 +27,16 @@ type AssistantContextValue = {
 const STORAGE_KEY = "earth-assistant-mode";
 const DEFAULT_MODE: ChatMode = "bubble";
 
+function isMobile(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(max-width: 768px)").matches;
+}
+
 function readStoredMode(): ChatMode {
   if (typeof window === "undefined") return DEFAULT_MODE;
   const v = localStorage.getItem(STORAGE_KEY);
   if (v === "hidden" || v === "bubble" || v === "pane") return v;
-  return DEFAULT_MODE;
+  return isMobile() ? "hidden" : DEFAULT_MODE;
 }
 
 const AssistantCtx = createContext<AssistantContextValue>({
