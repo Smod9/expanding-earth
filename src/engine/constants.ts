@@ -18,8 +18,8 @@ export const SECONDS_PER_YEAR = 3.156e7;
 export const SECONDS_PER_MYR = 3.156e13;
 
 export const CORE_RADIUS_FRACTION = 0.546; // outer core radius / Earth radius
-export const CORE_DENSITY = 12800; // effective mean core density tuned for MoI match [kg/m³]
-export const MANTLE_DENSITY = 4000; // effective mean mantle density tuned for MoI match [kg/m³]
+export const CORE_DENSITY = 11000; // effective mean core density tuned for MoI ≈ 0.33 [kg/m³]
+export const MANTLE_DENSITY = 4400; // effective mean mantle density tuned for MoI ≈ 0.33 [kg/m³]
 export const CRUST_DENSITY = 2800; // approximate mean crust density [kg/m³]
 
 /**

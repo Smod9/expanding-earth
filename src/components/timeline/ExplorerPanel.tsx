@@ -14,13 +14,13 @@ export function ExplorerPanel() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      {/* Time slider — full width */}
+      {/* Full time slider — detail view at top of explorer */}
       <TimeSlider />
 
       {/* Main grid: controls | visualizations */}
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
         {/* Left sidebar — controls */}
-        <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin pr-1">
+        <div className="space-y-4 lg:overflow-y-auto lg:max-h-[calc(100vh-220px)] scrollbar-thin lg:sticky lg:top-[130px] lg:self-start pr-1">
           <ScenarioControls />
         </div>
 

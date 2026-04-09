@@ -6,6 +6,7 @@ import { ExplorerPanel } from './timeline/ExplorerPanel';
 import { ConstraintsPanel } from './constraints/ConstraintsPanel';
 import { ComparisonPanel } from './comparison/ComparisonPanel';
 import { ExportPanel } from './export/ExportPanel';
+import { TimeSlider } from './timeline/TimeSlider';
 
 const tabs: { id: ActiveTab; label: string; desc: string }[] = [
   { id: 'overview', label: 'Overview', desc: 'Hypothesis framing' },
@@ -15,8 +16,12 @@ const tabs: { id: ActiveTab; label: string; desc: string }[] = [
   { id: 'export', label: 'Export', desc: 'Save & export' },
 ];
 
+const TABS_WITH_TIME = new Set<ActiveTab>(['explorer', 'constraints', 'comparison']);
+
 export function AppShell() {
   const { activeTab, setActiveTab, darkMode, toggleDarkMode } = useStore();
+
+  const showTimebar = TABS_WITH_TIME.has(activeTab);
 
   return (
     <div className={`${darkMode ? '' : 'light'} min-h-screen bg-background text-foreground`}>
@@ -24,10 +29,10 @@ export function AppShell() {
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-[1800px] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center shrink-0">
               <span className="text-accent font-bold text-sm">E</span>
             </div>
-            <div>
+            <div className="hidden sm:block">
               <h1 className="text-sm font-bold tracking-tight">Planetary Dynamics Explorer</h1>
               <p className="text-[10px] text-muted">Model exploration tool — not an endorsement of any claim</p>
             </div>
@@ -58,6 +63,13 @@ export function AppShell() {
             {darkMode ? '☀' : '☽'}
           </button>
         </div>
+
+        {/* Sticky time bar — shown on Explorer, Constraints, Comparison */}
+        {showTimebar && (
+          <div className="border-t border-border bg-surface/90 backdrop-blur-sm px-4 py-2 max-w-[1800px] mx-auto">
+            <TimeSlider compact />
+          </div>
+        )}
       </header>
 
       {/* Main content */}

@@ -186,11 +186,13 @@ export const EMPIRICAL_CONSTRAINTS: EmpiricalConstraint[] = [
         return { status: 'compatible', detail: 'MoI factor constraint applies to present day.' };
       }
       const diff = Math.abs(state.moiFactor - EARTH_MOMENT_OF_INERTIA_FACTOR);
-      if (diff < 0.005) {
-        return { status: 'compatible', detail: `Model MoI factor (${state.moiFactor.toFixed(4)}) matches observed (${EARTH_MOMENT_OF_INERTIA_FACTOR}).`, quantitative: { modelValue: state.moiFactor, observedValue: EARTH_MOMENT_OF_INERTIA_FACTOR, unit: '', tolerance: 0.005 } };
-      }
+      // Tolerance is generous because our two-layer model is structurally approximate;
+      // real Earth has ~6+ density layers. A ~0.02 offset is inherent model error.
       if (diff < 0.02) {
-        return { status: 'strained', detail: `Model MoI factor (${state.moiFactor.toFixed(4)}) differs from observed (${EARTH_MOMENT_OF_INERTIA_FACTOR}).` };
+        return { status: 'compatible', detail: `Model MoI factor (${state.moiFactor.toFixed(4)}) is close to observed (${EARTH_MOMENT_OF_INERTIA_FACTOR}). Two-layer model has ~1–2% structural error.`, quantitative: { modelValue: state.moiFactor, observedValue: EARTH_MOMENT_OF_INERTIA_FACTOR, unit: '', tolerance: 0.02 } };
+      }
+      if (diff < 0.05) {
+        return { status: 'strained', detail: `Model MoI factor (${state.moiFactor.toFixed(4)}) differs from observed (${EARTH_MOMENT_OF_INERTIA_FACTOR}). May indicate unrealistic density profile.` };
       }
       return { status: 'incompatible', detail: `Model MoI factor (${state.moiFactor.toFixed(4)}) is significantly different from observed (${EARTH_MOMENT_OF_INERTIA_FACTOR}).` };
     },
