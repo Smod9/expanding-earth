@@ -7,7 +7,7 @@ export const maxDuration = 120;
 export async function POST(request: Request) {
   const { messages, pageContext } = await request.json();
 
-  const modelId = "anthropic/claude-4.6-opus";
+  const modelId = "anthropic/claude-opus-4.6";
 
   let contextBlock = "";
   if (pageContext) {
