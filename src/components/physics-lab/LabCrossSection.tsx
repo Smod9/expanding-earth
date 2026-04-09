@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import type { PhysicsLabParams, PhysicsLabSnapshot } from '@/engine/pure-physics';
 import { EARTH_RADIUS } from '@/engine/constants';
 
@@ -15,6 +16,7 @@ export function LabCrossSection({
   snapshot,
   visualFlatteningScale = 8,
 }: Props) {
+  const maskId = useId().replace(/:/g, '');
   const viewSize = 400;
   const cx = viewSize / 2;
   const cy = viewSize / 2;
@@ -35,15 +37,15 @@ export function LabCrossSection({
   const fracCrust = tCrust > 0 ? Math.min(tCrust / snapshot.radius, 0.08) : 0;
   const innerRx = rx * (1 - fracCrust);
   const innerRy = ry * (1 - fracCrust);
-  const crustStrokeWidth = Math.max(2, (rx - innerRx) * 2);
 
   const integrity = snapshot.crustIntegrityRatio;
-  let crustStroke = '#22c55e';
-  if (integrity > 0.85) crustStroke = '#eab308';
-  if (integrity > 1) crustStroke = '#ef4444';
+  let crustFill = 'rgba(34, 197, 94, 0.35)';
+  if (integrity > 0.85) crustFill = 'rgba(234, 179, 8, 0.4)';
+  if (integrity > 1) crustFill = 'rgba(239, 68, 68, 0.45)';
 
-  /** Tilt of figure / spin axis in the plane (capped for readability) */
+  const wobblePsi = Math.min(Math.max(snapshot.wobbleConeDeg, 0), 45);
   const axisTiltDeg = Math.min(Math.max(snapshot.wobbleConeDeg, 0), 35);
+  const lineLen = ry + 36;
 
   return (
     <div className="bg-surface border border-border rounded-lg p-4">
@@ -56,21 +58,53 @@ export function LabCrossSection({
 
       <svg viewBox={`0 0 ${viewSize} ${viewSize}`} className="w-full max-w-[400px] mx-auto">
         <defs>
-          <radialGradient id="labCoreGrad" cx="40%" cy="40%">
+          <radialGradient id={`labCoreGrad-${maskId}`} cx="40%" cy="40%">
             <stop offset="0%" stopColor="#fbbf24" />
             <stop offset="100%" stopColor="#b45309" />
           </radialGradient>
-          <radialGradient id="labMantleGrad" cx="45%" cy="45%">
+          <radialGradient id={`labMantleGrad-${maskId}`} cx="45%" cy="45%">
             <stop offset="0%" stopColor="#dc2626" />
             <stop offset="60%" stopColor="#991b1b" />
             <stop offset="100%" stopColor="#7c2d12" />
           </radialGradient>
+          <mask id={`crustRing-${maskId}`} maskUnits="userSpaceOnUse">
+            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="white" />
+            <ellipse cx={cx} cy={cy} rx={innerRx} ry={innerRy} fill="black" />
+          </mask>
         </defs>
 
-        <g transform={`rotate(${axisTiltDeg}, ${cx}, ${cy})`}>
-          <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="url(#labMantleGrad)" opacity={0.92} />
+        {/* Wobble cone envelope (inertial frame): ±ψ from figure axis */}
+        {wobblePsi > 0.02 && (
+          <>
+            <line
+              x1={cx}
+              y1={cy - lineLen}
+              x2={cx}
+              y2={cy + lineLen}
+              stroke="var(--muted)"
+              strokeWidth={0.75}
+              strokeDasharray="4 4"
+              opacity={0.4}
+              transform={`rotate(${axisTiltDeg - wobblePsi}, ${cx}, ${cy})`}
+            />
+            <line
+              x1={cx}
+              y1={cy - lineLen}
+              x2={cx}
+              y2={cy + lineLen}
+              stroke="var(--muted)"
+              strokeWidth={0.75}
+              strokeDasharray="4 4"
+              opacity={0.4}
+              transform={`rotate(${axisTiltDeg + wobblePsi}, ${cx}, ${cy})`}
+            />
+          </>
+        )}
 
-          <ellipse cx={cx} cy={cy} rx={coreRx} ry={coreRy} fill="url(#labCoreGrad)" opacity={0.95} />
+        <g transform={`rotate(${axisTiltDeg}, ${cx}, ${cy})`}>
+          <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#labMantleGrad-${maskId})`} opacity={0.92} />
+
+          <ellipse cx={cx} cy={cy} rx={coreRx} ry={coreRy} fill={`url(#labCoreGrad-${maskId})`} opacity={0.95} />
 
           {fracCrust > 0 && (
             <ellipse
@@ -78,10 +112,8 @@ export function LabCrossSection({
               cy={cy}
               rx={rx}
               ry={ry}
-              fill="none"
-              stroke={crustStroke}
-              strokeWidth={crustStrokeWidth}
-              opacity={0.95}
+              fill={crustFill}
+              mask={`url(#crustRing-${maskId})`}
             />
           )}
 
@@ -121,7 +153,10 @@ export function LabCrossSection({
         <text x={12} y={viewSize - 26} fill="var(--muted)" fontSize={9} fontFamily="monospace">
           f = {snapshot.flattening > 0 ? `1/${(1 / snapshot.flattening).toFixed(0)}` : '0'}
         </text>
-        <text x={viewSize - 12} y={viewSize - 12} fill={crustStroke} fontSize={8} textAnchor="end">
+        <text x={viewSize - 12} y={viewSize - 12} fill="var(--muted)" fontSize={8} textAnchor="end">
+          ψ = {snapshot.wobbleConeDeg.toFixed(2)}°
+        </text>
+        <text x={viewSize - 12} y={viewSize - 24} fill={integrity > 1 ? '#ef4444' : 'var(--muted)'} fontSize={8} textAnchor="end">
           crust σ / σ_yield = {integrity.toFixed(2)}
         </text>
       </svg>
@@ -136,12 +171,16 @@ export function LabCrossSection({
           Mantle
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full border-2" style={{ borderColor: crustStroke }} />
-          Crust (stress)
+          <span className="w-2 h-2 rounded-full opacity-80" style={{ backgroundColor: crustFill }} />
+          Crust shell
         </div>
         <div className="flex items-center gap-1">
           <span className="w-8 h-0.5 bg-[var(--accent)] opacity-70" style={{ borderStyle: 'dashed' }} />
           Spin axis
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-8 h-0.5 bg-muted opacity-50" style={{ borderStyle: 'dashed' }} />
+          Wobble cone
         </div>
       </div>
     </div>

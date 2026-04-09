@@ -3,7 +3,7 @@
  * No geologic time evolution — parameter sweeps and equilibrium thresholds only.
  */
 
-import { G, EARTH_MASS, EARTH_RADIUS } from "./constants";
+import { EARTH_MASS, EARTH_RADIUS, G } from "./constants";
 import {
   computeMomentOfInertia,
   computeMoIFactor,
@@ -32,6 +32,8 @@ export interface PhysicsLabParams {
   massAnomalyFraction: number;
   /** Colatitude of anomaly [deg], 0 = north pole, 90 = equator */
   anomalyColatitudeDeg: number;
+  /** Young's modulus for crust elastic energy estimate [Pa], default ~50 GPa */
+  crustYoungModulusPa?: number;
 }
 
 export interface PhysicsLabSnapshot {
@@ -58,9 +60,32 @@ export interface PhysicsLabSnapshot {
   eRot: number;
   eGrav: number;
   eRatio: number;
+  /** Crust elastic strain energy ~ σ²/(2E) × shell volume [J] */
+  crustElasticEnergyJ: number;
+  /** Smallest mean radius [km] in [rMin,rMax] where σ_hoop ≥ σ_yield (null if never in range) */
+  criticalRadiusCrustFailKm: number | null;
 }
 
 const TWO_PI = 2 * Math.PI;
+
+/** Default Young's modulus (basalt-scale) for crust elastic energy [Pa] */
+export const DEFAULT_CRUST_YOUNG_MODULUS_PA = 50e9;
+
+/**
+ * Elastic strain energy in a thin shell: U ≈ (σ² / 2E) × (4π R² t).
+ */
+export function computeCrustElasticEnergyJ(
+  sigmaPa: number,
+  radiusM: number,
+  crustThicknessM: number,
+  youngPa: number,
+): number {
+  if (crustThicknessM <= 0 || youngPa <= 0) return 0;
+  const area = 4 * Math.PI * radiusM * radiusM;
+  const volume = area * crustThicknessM;
+  return ((sigmaPa * sigmaPa) / (2 * youngPa)) * volume;
+}
+
 
 export function earthMassFromMultiple(multiple: number): number {
   return EARTH_MASS * multiple;
@@ -159,6 +184,93 @@ export function computeTpwThresholdMassFraction(
   return Math.min(1, deltaInertia / denom);
 }
 
+function snapshotAtRadius(
+  base: PhysicsLabParams,
+  radiusM: number,
+  refL: number | null,
+  omegaFixed: number,
+): PhysicsLabSnapshot {
+  const p = { ...base, meanRadiusM: radiusM };
+  const mass = earthMassFromMultiple(p.totalMassEarth);
+  const I = computeMomentOfInertia(radiusM, p.coreRadiusFraction, p.coreDensity, p.mantleDensity);
+  const moiFactor = computeMoIFactor(I, mass, radiusM);
+  let omega = omegaFixed;
+  if (refL !== null) {
+    omega = refL / I;
+  }
+  const fH = computeHydrostaticFlattening(omega, radiusM, mass, moiFactor);
+  const omegaBr = computeBreakupOmega(mass, radiusM);
+  const sm = omegaBr > 0 ? omega / omegaBr : 0;
+  const sigmaPa = computeCrustHoopStressPa(
+    p.mantleDensity,
+    omega,
+    radiusM,
+    fH,
+    p.crustThicknessM,
+  );
+  const eRot = 0.5 * I * omega * omega;
+  const eGrav = Math.abs(computeBindingEnergyApprox(mass, radiusM, moiFactor));
+  const eRatio = eGrav > 0 ? eRot / eGrav : 0;
+  const young = p.crustYoungModulusPa ?? DEFAULT_CRUST_YOUNG_MODULUS_PA;
+  const eCrust = computeCrustElasticEnergyJ(sigmaPa, radiusM, p.crustThicknessM, young);
+  return {
+    mass,
+    radius: radiusM,
+    omega,
+    dayLengthHours: (TWO_PI / omega) / 3600,
+    omegaBreakup: omegaBr,
+    breakupDayLengthHours: omegaBr > 0 ? (TWO_PI / omegaBr) / 3600 : Infinity,
+    stabilityMargin: sm,
+    flattening: fH,
+    surfaceGravity: computeSurfaceGravity(mass, radiusM),
+    momentOfInertia: I,
+    moiFactor,
+    deltaInertia: splitInertiaAC(I, fH).delta,
+    eulerPeriodDays: 0,
+    wobbleConeDeg: 0,
+    tpwThresholdMassFraction: 0,
+    crustHoopStressMpa: sigmaPa / 1e6,
+    crustYieldMpa: p.crustYieldMpa,
+    crustIntegrityRatio: p.crustYieldMpa > 0 ? sigmaPa / 1e6 / p.crustYieldMpa : 0,
+    crustFailed: false,
+    eRot,
+    eGrav,
+    eRatio,
+    crustElasticEnergyJ: eCrust,
+    criticalRadiusCrustFailKm: null,
+  };
+}
+
+/** Smallest mean radius [km] in [rMinM, rMaxM] where hoop stress first reaches yield. */
+function findCriticalRadiusCrustFailureKmInner(
+  base: PhysicsLabParams,
+  rMinM: number,
+  rMaxM: number,
+  steps: number = 400,
+): number | null {
+  if (base.crustThicknessM <= 0 || base.crustYieldMpa <= 0) return null;
+  const yieldPa = base.crustYieldMpa * 1e6;
+  const omega0 = omegaFromDayLengthHours(base.dayLengthHours);
+  const I0 = computeMomentOfInertia(
+    base.meanRadiusM,
+    base.coreRadiusFraction,
+    base.coreDensity,
+    base.mantleDensity,
+  );
+  const refL = base.conserveAngularMomentum ? I0 * omega0 : null;
+
+  for (let i = 0; i < steps; i++) {
+    const t = steps === 1 ? 0 : i / (steps - 1);
+    const R = rMinM + t * (rMaxM - rMinM);
+    const snap = snapshotAtRadius(base, R, refL, omega0);
+    const sigmaPa = snap.crustHoopStressMpa * 1e6;
+    if (sigmaPa >= yieldPa) {
+      return R / 1000;
+    }
+  }
+  return null;
+}
+
 export function computePhysicsLabSnapshot(p: PhysicsLabParams): PhysicsLabSnapshot {
   const mass = earthMassFromMultiple(p.totalMassEarth);
   const R = p.meanRadiusM;
@@ -201,6 +313,9 @@ export function computePhysicsLabSnapshot(p: PhysicsLabParams): PhysicsLabSnapsh
   const eRot = 0.5 * I * omega * omega;
   const eGrav = Math.abs(computeBindingEnergyApprox(mass, R, moiFactor));
   const eRatio = eGrav > 0 ? eRot / eGrav : 0;
+  const young = p.crustYoungModulusPa ?? DEFAULT_CRUST_YOUNG_MODULUS_PA;
+  const eCrust = computeCrustElasticEnergyJ(sigmaPa, R, p.crustThicknessM, young);
+  const critKm = findCriticalRadiusCrustFailureKmInner(p, EARTH_RADIUS * 0.15, EARTH_RADIUS * 5);
 
   return {
     mass,
@@ -225,6 +340,8 @@ export function computePhysicsLabSnapshot(p: PhysicsLabParams): PhysicsLabSnapsh
     eRot,
     eGrav,
     eRatio,
+    crustElasticEnergyJ: eCrust,
+    criticalRadiusCrustFailKm: critKm,
   };
 }
 
@@ -236,59 +353,6 @@ export interface SweepPoint {
   dayLengthHours: number;
   crustStressMpa: number;
   energyRatio: number;
-}
-
-function snapshotAtRadius(
-  base: PhysicsLabParams,
-  radiusM: number,
-  refL: number | null,
-  omegaFixed: number,
-): PhysicsLabSnapshot {
-  const p = { ...base, meanRadiusM: radiusM };
-  const mass = earthMassFromMultiple(p.totalMassEarth);
-  const I = computeMomentOfInertia(radiusM, p.coreRadiusFraction, p.coreDensity, p.mantleDensity);
-  const moiFactor = computeMoIFactor(I, mass, radiusM);
-  let omega = omegaFixed;
-  if (refL !== null) {
-    omega = refL / I;
-  }
-  const fH = computeHydrostaticFlattening(omega, radiusM, mass, moiFactor);
-  const omegaBr = computeBreakupOmega(mass, radiusM);
-  const sm = omegaBr > 0 ? omega / omegaBr : 0;
-  const sigmaPa = computeCrustHoopStressPa(
-    p.mantleDensity,
-    omega,
-    radiusM,
-    fH,
-    p.crustThicknessM,
-  );
-  const eRot = 0.5 * I * omega * omega;
-  const eGrav = Math.abs(computeBindingEnergyApprox(mass, radiusM, moiFactor));
-  const eRatio = eGrav > 0 ? eRot / eGrav : 0;
-  return {
-    mass,
-    radius: radiusM,
-    omega,
-    dayLengthHours: (TWO_PI / omega) / 3600,
-    omegaBreakup: omegaBr,
-    breakupDayLengthHours: omegaBr > 0 ? (TWO_PI / omegaBr) / 3600 : Infinity,
-    stabilityMargin: sm,
-    flattening: fH,
-    surfaceGravity: computeSurfaceGravity(mass, radiusM),
-    momentOfInertia: I,
-    moiFactor,
-    deltaInertia: splitInertiaAC(I, fH).delta,
-    eulerPeriodDays: 0,
-    wobbleConeDeg: 0,
-    tpwThresholdMassFraction: 0,
-    crustHoopStressMpa: sigmaPa / 1e6,
-    crustYieldMpa: p.crustYieldMpa,
-    crustIntegrityRatio: p.crustYieldMpa > 0 ? sigmaPa / 1e6 / p.crustYieldMpa : 0,
-    crustFailed: false,
-    eRot,
-    eGrav,
-    eRatio,
-  };
 }
 
 /** Sweep mean radius [m] from rMin to rMax (linear steps). */

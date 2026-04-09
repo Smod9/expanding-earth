@@ -52,6 +52,8 @@ function LabChart({
   currentX,
   refY,
   refLabel,
+  refY2,
+  refLabel2,
   color,
 }: {
   title: string;
@@ -63,6 +65,9 @@ function LabChart({
   currentX: number;
   refY?: number;
   refLabel?: string;
+  /** Secondary horizontal line (e.g. ω = ω_max at y=1) */
+  refY2?: number;
+  refLabel2?: string;
   color: string;
 }) {
   return (
@@ -85,6 +90,9 @@ function LabChart({
             />
             {refY !== undefined && refY !== null && (
               <ReferenceLine y={refY} stroke="#ef4444" strokeDasharray="4 4" label={refLabel} />
+            )}
+            {refY2 !== undefined && refY2 !== null && (
+              <ReferenceLine y={refY2} stroke="#f97316" strokeDasharray="3 3" label={refLabel2} />
             )}
             <ReferenceLine x={currentX} stroke="var(--accent)" strokeDasharray="3 3" />
             <Line type="monotone" dataKey={yKey} stroke={color} strokeWidth={1.5} dot={false} />
@@ -330,6 +338,20 @@ export function PhysicsLabPanel() {
               unit="%"
             />
             <Readout label="E_rot / |E_grav|" value={snapshot.eRatio.toExponential(2)} />
+            <Readout
+              label="E_crust (elastic)"
+              value={snapshot.crustElasticEnergyJ.toExponential(2)}
+              unit="J"
+            />
+            <Readout
+              label="R_crit (crust yield)"
+              value={
+                snapshot.criticalRadiusCrustFailKm != null
+                  ? snapshot.criticalRadiusCrustFailKm.toFixed(0)
+                  : '—'
+              }
+              unit="km"
+            />
           </div>
 
           <LabCrossSection params={params} snapshot={snapshot} />
@@ -373,6 +395,8 @@ export function PhysicsLabPanel() {
               xLabel="R (km)"
               yLabel="ω/ω_max"
               currentX={currentRKm}
+              refY2={1}
+              refLabel2="breakup"
               color="#f59e0b"
             />
             <LabChart
@@ -400,9 +424,10 @@ export function PhysicsLabPanel() {
           </div>
 
           <p className="text-[10px] text-muted leading-relaxed max-w-4xl">
-            Breakup spin uses ω_max = √(GM/R³). Crust hoop stress uses a thin-shell approximation with
-            ΔP ∝ ρ_m ω²R²f. Euler period uses A,C split from mean I and small-oblateness scaling. TPW
-            threshold is order-of-magnitude δm/M ∼ |C−A|/(MR²). All are toy models for intuition.
+            Breakup spin uses ω_max = √(GM/R³).             Crust hoop stress uses a thin-shell approximation with
+            ΔP ∝ ρ_m ω²R²f; elastic energy ~ σ²/(2E)×shell volume. Euler period uses A,C split from mean I and
+            small-oblateness scaling. TPW threshold is order-of-magnitude δm/M ∼ |C−A|/(MR²). R_crit is the
+            first radius in the sweep where σ ≥ σ_yield. All are toy models for intuition.
           </p>
         </div>
       </div>
