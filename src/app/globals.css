@@ -108,6 +108,17 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 3px;
 }
 
+.katex {
+  color: inherit;
+  font-size: 1em;
+}
+
+.katex-display {
+  margin: 0.75em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .recharts-cartesian-axis-tick-value {
   fill: var(--muted) !important;
   font-size: 11px !important;
