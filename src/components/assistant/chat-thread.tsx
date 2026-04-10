@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ThreadPrimitive,
   ComposerPrimitive,
@@ -58,7 +59,57 @@ function AssistantMessage() {
   );
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return mobile;
+}
+
+function SendButton() {
+  return (
+    <ComposerPrimitive.Send asChild>
+      <button
+        type="submit"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-background transition-colors hover:bg-accent/80 disabled:opacity-30"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 12V2M3 6l4-4 4 4" />
+        </svg>
+      </button>
+    </ComposerPrimitive.Send>
+  );
+}
+
 export function ChatThread({ actions }: { actions?: React.ReactNode }) {
+  const isMobile = useIsMobile();
+  const [composerOpen, setComposerOpen] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const openComposer = useCallback(() => {
+    if (isMobile) {
+      setComposerOpen(true);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [isMobile]);
+
+  const closeComposer = useCallback(() => {
+    setComposerOpen(false);
+    inputRef.current?.blur();
+  }, []);
+
+  // Close composer after send — listen for the form submit
+  const handleSend = useCallback(() => {
+    if (isMobile) {
+      setTimeout(() => setComposerOpen(false), 100);
+    }
+  }, [isMobile]);
+
   return (
     <ThreadPrimitive.Root className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Header */}
@@ -138,8 +189,8 @@ export function ChatThread({ actions }: { actions?: React.ReactNode }) {
         </div>
       </ThreadPrimitive.Viewport>
 
-      {/* Composer — pinned to bottom, outside the scroll area */}
-      <div className="shrink-0 border-t border-border bg-surface px-4 pt-3 pb-3">
+      {/* Desktop composer — always inline */}
+      <div className="hidden md:block shrink-0 border-t border-border bg-surface px-4 pt-3 pb-3">
         <ComposerPrimitive.Root className="flex items-center gap-2 rounded-xl border border-border bg-surface-alt px-3 py-2 focus-within:border-accent/50 transition-colors">
           <ComposerPrimitive.Input
             placeholder="Ask about the model..."
@@ -147,18 +198,51 @@ export function ChatThread({ actions }: { actions?: React.ReactNode }) {
             data-assistant-composer-input=""
             autoFocus
           />
-          <ComposerPrimitive.Send asChild>
-            <button
-              type="submit"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-background transition-colors hover:bg-accent/80 disabled:opacity-30"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 12V2M3 6l4-4 4 4" />
-              </svg>
-            </button>
-          </ComposerPrimitive.Send>
+          <SendButton />
         </ComposerPrimitive.Root>
       </div>
+
+      {/* Mobile composer — tap bar or floating overlay */}
+      {isMobile && !composerOpen && (
+        <div className="md:hidden shrink-0 border-t border-border bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={openComposer}
+            className="flex w-full items-center gap-2 rounded-xl border border-border bg-surface-alt px-4 py-3 text-sm text-muted transition-colors"
+          >
+            <span className="flex-1 text-left">Ask about the model...</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent opacity-50">
+              <path d="M7 12V2M3 6l4-4 4 4" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {isMobile && composerOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+            onClick={closeComposer}
+          />
+          {/* Floating composer */}
+          <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-2xl">
+            <ComposerPrimitive.Root
+              className="flex items-center gap-2 rounded-xl border border-accent/50 bg-surface-alt px-4 py-3 transition-colors"
+              onSubmit={handleSend}
+            >
+              <ComposerPrimitive.Input
+                ref={inputRef}
+                placeholder="Ask about the model..."
+                className="flex-1 resize-none border-none bg-transparent text-base text-foreground outline-none placeholder:text-muted"
+                data-assistant-composer-input=""
+                autoFocus
+              />
+              <SendButton />
+            </ComposerPrimitive.Root>
+          </div>
+        </>
+      )}
     </ThreadPrimitive.Root>
   );
 }
