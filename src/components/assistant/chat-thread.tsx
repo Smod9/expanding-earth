@@ -181,20 +181,20 @@ export function ChatThread({ actions }: { actions?: React.ReactNode }) {
           aria-hidden
         />
         <div
-          className="fixed inset-x-0 z-[110] border-t border-border bg-surface px-4 pt-3 shadow-2xl md:hidden"
+          className="fixed left-3 right-3 z-[110] md:hidden"
           style={{
             bottom: keyboardBottomInset,
-            paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0px))`,
+            paddingBottom: `calc(0.5rem + env(safe-area-inset-bottom, 0px))`,
           }}
         >
           <ComposerPrimitive.Root
-            className="flex min-h-[48px] items-center gap-2 rounded-xl border border-accent/50 bg-surface-alt px-4 py-3 transition-colors"
+            className="flex min-h-[44px] items-center gap-2 rounded-2xl border border-border bg-surface-alt px-3 py-2 shadow-lg shadow-black/20 dark:shadow-black/40 transition-colors focus-within:border-accent/40"
             onSubmit={handleSend}
           >
             <ComposerPrimitive.Input
               ref={mobileInputRef}
               placeholder="Ask about the model..."
-              className="flex-1 resize-none border-none bg-transparent text-base leading-snug text-foreground outline-none placeholder:text-muted min-h-[44px] max-h-40"
+              className="flex-1 resize-none border-none bg-transparent text-base leading-snug text-foreground outline-none placeholder:text-muted min-h-[40px] max-h-40 py-1"
               data-assistant-composer-input=""
               autoFocus
             />
