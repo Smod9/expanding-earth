@@ -196,7 +196,7 @@ export function ChatThread({ actions }: { actions?: React.ReactNode }) {
     composerOpen && typeof document !== "undefined" ? (
       <>
         <div
-          className="fixed inset-0 z-[100] bg-background/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-[100] bg-background/25 backdrop-blur-[2px] md:hidden"
           onClick={closeComposer}
           aria-hidden
         />
