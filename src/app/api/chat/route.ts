@@ -31,18 +31,19 @@ function toolsFromClientPayload(
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as {
-    messages?: unknown;
-    pageContext?: Record<string, unknown>;
-    tools?: ClientToolPayload;
-    system?: string;
-  };
+  try {
+    const body = (await request.json()) as {
+      messages?: unknown;
+      pageContext?: Record<string, unknown>;
+      tools?: ClientToolPayload;
+      system?: string;
+    };
 
-  const { messages, pageContext, tools: clientTools, system: clientSystem } =
-    body;
+    const { messages, pageContext, tools: clientTools, system: clientSystem } =
+      body;
 
-  const modelId =
-    process.env.EARTH_CHAT_MODEL?.trim() || "anthropic/claude-sonnet-4.6";
+    const modelId =
+      process.env.EARTH_CHAT_MODEL?.trim() || "anthropic/claude-sonnet-4.6";
 
   let contextBlock = "";
   if (pageContext) {
@@ -125,14 +126,39 @@ ${contextBlock}`;
     messages as Parameters<typeof convertToModelMessages>[0],
   );
 
-  const toolSet = toolsFromClientPayload(clientTools);
+    const toolSet = toolsFromClientPayload(clientTools);
 
-  const result = streamText({
-    model: gateway(modelId),
-    system: systemPrompt,
-    messages: modelMessages,
-    ...(toolSet && Object.keys(toolSet).length > 0 ? { tools: toolSet } : {}),
-  });
+    const result = streamText({
+      model: gateway(modelId),
+      system: systemPrompt,
+      messages: modelMessages,
+      ...(toolSet && Object.keys(toolSet).length > 0 ? { tools: toolSet } : {}),
+      providerOptions: {
+        gateway: {
+          models: ["openai/gpt-5.4"],
+        },
+      },
+      onError: ({ error }) => {
+        const detail =
+          error instanceof Error ? `${error.name}: ${error.message}` : error;
+        console.error("[api/chat] streamText error:", detail);
+      },
+    });
 
-  return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      onError: (error) => {
+        console.error("[api/chat] UI stream error:", error);
+        return "Temporary error from the AI service. Please try again.";
+      },
+    });
+  } catch (err) {
+    console.error("[api/chat] request failed:", err);
+    return Response.json(
+      {
+        error:
+          err instanceof Error ? err.message : "Chat request could not be processed",
+      },
+      { status: 500 },
+    );
+  }
 }
