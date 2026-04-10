@@ -4,7 +4,11 @@ import {
   tool,
   jsonSchema,
 } from "ai";
-import { gateway } from "@ai-sdk/gateway";
+import {
+  gateway,
+  GatewayError,
+  GatewayModelNotFoundError,
+} from "@ai-sdk/gateway";
 import type { JSONSchema7 } from "json-schema";
 
 export const runtime = "nodejs";
@@ -14,6 +18,36 @@ type ClientToolPayload = Record<
   string,
   { description?: string; parameters: JSONSchema7 }
 >;
+
+/** Rich logs for Vercel Runtime (Observability → Logs). Never log prompts. */
+function logChatError(scope: string, error: unknown) {
+  if (GatewayError.isInstance(error)) {
+    const base = {
+      scope,
+      name: error.name,
+      type: error.type,
+      message: error.message,
+      statusCode: error.statusCode,
+      generationId: error.generationId,
+    };
+    if (GatewayModelNotFoundError.isInstance(error)) {
+      console.error("[api/chat]", { ...base, modelId: error.modelId });
+    } else {
+      console.error("[api/chat]", { ...base, cause: error.cause });
+    }
+    return;
+  }
+  if (error instanceof Error) {
+    console.error("[api/chat]", {
+      scope,
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+    return;
+  }
+  console.error("[api/chat]", { scope, error });
+}
 
 function toolsFromClientPayload(
   clientTools: ClientToolPayload | undefined,
@@ -43,12 +77,23 @@ export async function POST(request: Request) {
       body;
 
     const modelId =
-      process.env.EARTH_CHAT_MODEL?.trim() || "anthropic/claude-sonnet-4.6";
+      process.env.EARTH_CHAT_MODEL?.trim() || "anthropic/claude-opus-4.6";
 
-  let contextBlock = "";
-  if (pageContext) {
-    const pc = pageContext as Record<string, string | number | undefined>;
-    contextBlock = `
+    console.info("[api/chat] request", {
+      modelId,
+      earthChatModelEnv: Boolean(process.env.EARTH_CHAT_MODEL?.trim()),
+      auth: {
+        aiGatewayApiKey: Boolean(process.env.AI_GATEWAY_API_KEY),
+        vercelOidc: Boolean(process.env.VERCEL_OIDC_TOKEN),
+      },
+      messageCount: Array.isArray(messages) ? messages.length : -1,
+      toolNames: clientTools ? Object.keys(clientTools) : [],
+    });
+
+    let contextBlock = "";
+    if (pageContext) {
+      const pc = pageContext as Record<string, string | number | undefined>;
+      contextBlock = `
 
 ## Current App State
 - Active tab: ${pc.activeTab ?? "unknown"}
@@ -69,62 +114,46 @@ export async function POST(request: Request) {
 
 ### Constraint Assessment
 ${pc.constraintSummary ?? "Not evaluated"}`;
-  }
+    }
 
-  const toolsBlock = clientTools
-    ? `
+    const toolsBlock = clientTools
+      ? `
 
 ## App control tools
-Frontend tools are available: you can change the active tab, geologic time, load a seed scenario, patch Explorer scenario parameters, and patch or reset Physics Lab parameters. When the user asks to try a configuration, **call the appropriate tools** instead of only describing hypothetical slider moves. After tools run, briefly confirm what changed.`
-    : "";
+You can drive the UI: tab, geologic time, seed scenarios, Explorer parameters, Physics Lab parameters. If the user wants a configuration change, **call tools**—do not only describe slider moves. After tools run, one short confirmation of what changed.`
+      : "";
 
-  let systemPrompt = `You are the Planetary Dynamics Explorer assistant — an intellectually honest scientific discussion partner embedded in an interactive model-exploration tool.
+    let systemPrompt = `You are the Explorer Assistant in the Planetary Dynamics Explorer: a concise, intellectually honest science partner for plate tectonics, planetary structure, expanding-Earth variants (historical and modern), geodetic/paleomagnetic/geologic constraints, rotation & hydrostatics (oblateness, MoI, true polar wander), and this app's physics outputs (radius, density, gravity, day length, regime, etc.).
 
-## Your Role
-You help users understand and explore the hypothesis that plate tectonics, while extremely successful, may be one layer of a larger planetary dynamics system. You are knowledgeable about:
-- Plate tectonics, mantle convection, and Earth's internal structure
-- The expanding Earth hypothesis (Carey, Hilgenberg, and modern variants)
-- Geodetic, paleomagnetic, and geological constraints on planetary evolution
-- Rotational dynamics, hydrostatic equilibrium, and true polar wander
-- The physics engine in this app: how it computes radius, density, gravity, rotation, oblateness, moment of inertia, and tectonic regime
+**App (short):** Users pick radial-evolution scenarios and parameters, run ~4.5 Gyr, compare to constraint overlays and multi-scenario views. **Physics Lab** = rotating-body mechanics without the geologic timeline.
 
-## About This App
-The Planetary Dynamics Explorer lets users:
-1. Choose different radial evolution scenarios (no expansion, linear, exponential, episodic, custom)
-2. Adjust physical parameters (mass, layering, rotation, relaxation, pole drift)
-3. See how planetary state evolves over 4.5 billion years
-4. Compare model predictions against empirical constraints
-5. Compare multiple scenario interpretations side by side
-6. Use the **Physics Lab** tab for first-principles rotating-body mechanics (no geologic timeline)
+**Seed scenarios:** (1) Standard — No Expansion — null, constant R, tidal braking. (2) Tiny present-day expansion — ~upper geodetic bound (~0.1 mm/yr). (3) Classical expansion — ~45% growth; **strong** constraint tension. (4) Episodic pulses — speculative. (5) Hybrid PT surface regime — tiny ΔR, regime emphasis; "PT plus bigger story."
 
-The app has 5 seed scenarios:
-- **Standard — No Expansion**: Mainstream null hypothesis. Constant radius, tidal braking.
-- **Tiny Present-Day Expansion**: Upper bound of geodetic tolerance (~0.1 mm/yr). Within measurement uncertainty.
-- **Classical Expansion Hypothesis**: ~45% historical growth. In STRONG tension with multiple constraints.
-- **Episodic Pulse Expansion**: Pulses tied loosely to geological events. Speculative.
-- **Hybrid — Plate Tectonics as Surface Regime**: Very small radial change, emphasis on regime transitions. The "PT is correct AND part of a larger story" idea.
-
-## Epistemic Standards
-- Clearly distinguish between observations, inferences, model outputs, and speculation
-- Never present fringe ideas as established fact
-- Acknowledge when the mainstream view is strongly supported
-- Point out where alternative models create tension with evidence
-- Be genuinely curious and exploratory — not dismissive, not promotional
-- If the user's current scenario conflicts with evidence, explain why honestly
-- Use the current app state (provided below) to give contextual answers
+**Epistemics:** Separate observation / inference / model output / speculation. Do not sell fringe as fact; say when mainstream is solid; flag evidence tension. Ground answers in **Current App State** below when relevant.
 ${toolsBlock}
 
-## Tone
-Smart, skeptical, exploratory, concise. Like talking to a knowledgeable colleague who takes the question seriously but won't handwave past problems. Use markdown for readability.
+**Style:** Short paragraphs, tight markdown, skeptical colleague—no fluff.
 ${contextBlock}`;
 
-  if (typeof clientSystem === "string" && clientSystem.trim()) {
-    systemPrompt += `\n\n## Additional instructions\n${clientSystem.trim()}`;
-  }
+    if (typeof clientSystem === "string" && clientSystem.trim()) {
+      systemPrompt += `\n\n## Additional instructions\n${clientSystem.trim()}`;
+    }
 
-  const modelMessages = await convertToModelMessages(
-    messages as Parameters<typeof convertToModelMessages>[0],
-  );
+    let modelMessages: Awaited<
+      ReturnType<typeof convertToModelMessages>
+    >;
+    try {
+      modelMessages = await convertToModelMessages(
+        messages as Parameters<typeof convertToModelMessages>[0],
+      );
+    } catch (convErr) {
+      logChatError("convertToModelMessages", convErr);
+      throw convErr;
+    }
+
+    console.info("[api/chat] converted messages", {
+      modelMessageCount: modelMessages.length,
+    });
 
     const toolSet = toolsFromClientPayload(clientTools);
 
@@ -139,20 +168,18 @@ ${contextBlock}`;
         },
       },
       onError: ({ error }) => {
-        const detail =
-          error instanceof Error ? `${error.name}: ${error.message}` : error;
-        console.error("[api/chat] streamText error:", detail);
+        logChatError("streamText", error);
       },
     });
 
     return result.toUIMessageStreamResponse({
       onError: (error) => {
-        console.error("[api/chat] UI stream error:", error);
+        logChatError("toUIMessageStreamResponse", error);
         return "Temporary error from the AI service. Please try again.";
       },
     });
   } catch (err) {
-    console.error("[api/chat] request failed:", err);
+    logChatError("POST catch", err);
     return Response.json(
       {
         error:
