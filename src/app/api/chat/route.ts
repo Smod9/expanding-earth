@@ -164,6 +164,9 @@ ${toolsBlock}
 - **Go longer only when asked** (e.g. "explain in detail", "walk me through", "tutorial") or when the question truly needs a long derivation or exhaustive comparison.
 - Use markdown for readability; prefer tight structure over volume.
 
+## Markdown math (required for rendering)
+The chat UI only renders TeX inside dollar delimiters. Inline: wrap in single dollars, e.g. $\\Delta\\rho$ or $(\\Delta\\rho)$. Display: put a $$ line, the equation, then another $$ line. Never emit bare \\Delta, \\frac, \\text, etc. without dollars; do not use LaTeX \\( \\) or \\[ \\] or square-bracket wrappers for equations in markdown—use $$ for display math.
+
 ## Tone
 Smart, skeptical, exploratory, concise. Like talking to a knowledgeable colleague who takes the question seriously but won't handwave past problems.
 ${contextBlock}`;

@@ -15,6 +15,24 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
+/**
+ * remark-math only parses `$...$` and `$$...$$`. Models often emit LaTeX with
+ * `\( \)` / `\[ \]` or display equations in `[ ... ]`; normalize so KaTeX runs.
+ */
+function prepareAssistantMarkdownForMath(text: string): string {
+  let s = text;
+  s = s.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner: string) => {
+    const t = inner.trim();
+    return `\n\n$$${t}$$\n\n`;
+  });
+  s = s.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner: string) => {
+    const t = inner.trim();
+    if (t.includes("\n")) return `\n\n$$${t}$$\n\n`;
+    return `$${t}$`;
+  });
+  return s;
+}
+
 function ThinkingDots() {
   return (
     <span className="inline-flex items-center gap-1 align-middle">
@@ -28,7 +46,9 @@ function ThinkingDots() {
 function TextPart({ text }: TextMessagePartProps) {
   return (
     <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-xs [&_h3]:font-semibold [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1.5 [&_code]:text-accent [&_code]:bg-surface-alt [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_strong]:text-foreground [&_a]:text-accent [&_table]:my-2 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:bg-surface-alt [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5">
-      <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{text}</Markdown>
+      <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+        {prepareAssistantMarkdownForMath(text)}
+      </Markdown>
       <MessagePartPrimitive.InProgress>
         <ThinkingDots />
       </MessagePartPrimitive.InProgress>
