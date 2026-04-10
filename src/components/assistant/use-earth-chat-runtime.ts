@@ -7,7 +7,7 @@
  * 2. Default transport uses EarthAssistantChatTransport (safe optional chaining).
  */
 import { useChat } from "@ai-sdk/react";
-import type { ChatTransport, UIMessage } from "ai";
+import { safeValidateUIMessages, type ChatTransport, type UIMessage } from "ai";
 import {
   useCloudThreadListAdapter,
   useRemoteThreadListRuntime,
@@ -18,7 +18,11 @@ import type { UseChatRuntimeOptions } from "@assistant-ui/react-ai-sdk";
 import { useAuiState } from "@assistant-ui/store";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { EarthAssistantChatTransport } from "@/lib/earth-assistant-chat-transport";
-import { loadChatHistory, saveChatHistory } from "@/lib/chat-history";
+import {
+  clearChatHistory,
+  loadChatHistory,
+  saveChatHistory,
+} from "@/lib/chat-history";
 
 function useDynamicChatTransport(transport: ChatTransport<UIMessage>) {
   const transportRef = useRef(transport);
@@ -49,7 +53,7 @@ function useChatThreadRuntime(
     transportOptions ?? new EarthAssistantChatTransport({ api: "/api/chat" }),
   );
   const id = useAuiState((s) => s.threadListItem.id);
-  const initialMessages = useMemo(() => loadChatHistory() as UIMessage[], []);
+  const initialMessages = useMemo(() => loadChatHistory() as UIMessage[], [id]);
   const chat = useChat({
     ...chatOptions,
     id,
@@ -57,7 +61,31 @@ function useChatThreadRuntime(
     messages: initialMessages.length > 0 ? initialMessages : undefined,
   });
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const raw = loadChatHistory();
+      if (raw.length === 0) return;
+      const result = await safeValidateUIMessages({ messages: raw });
+      if (cancelled) return;
+      if (!result.success) {
+        clearChatHistory();
+        chat.setMessages([]);
+        return;
+      }
+      chat.setMessages(result.data);
+      saveChatHistory(result.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
   const prevLenRef = useRef(initialMessages.length);
+  useEffect(() => {
+    prevLenRef.current = initialMessages.length;
+  }, [id, initialMessages.length]);
+
   const persistMessages = useCallback(() => {
     if (chat.messages.length !== prevLenRef.current) {
       prevLenRef.current = chat.messages.length;
