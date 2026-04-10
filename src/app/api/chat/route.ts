@@ -41,7 +41,8 @@ export async function POST(request: Request) {
   const { messages, pageContext, tools: clientTools, system: clientSystem } =
     body;
 
-  const modelId = "anthropic/claude-opus-4.6";
+  const modelId =
+    process.env.EARTH_CHAT_MODEL?.trim() || "anthropic/claude-sonnet-4.6";
 
   let contextBlock = "";
   if (pageContext) {
